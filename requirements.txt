@@ -7,3 +7,5 @@ accelerate
 einops
 bitsandbytes
 datasets
+sentence_transformers
+polars
