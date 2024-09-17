@@ -1,0 +1,8 @@
+{
+    "exact_match": 0.51,
+    "partial_match": 0.82,
+    "jaccard_partial_match": 0.7092871572871573,
+    "precision": 0.744140625,
+    "recall": 0.7529644268774703,
+    "f1": 0.7485265225933203
+}

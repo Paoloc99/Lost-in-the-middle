@@ -1,0 +1,20 @@
+input_1 = DOC_A_1 DOC_B_1 QUERY_1 ANS_1
+input_2 = DOC_A_2 DOC_B_2 QUERY_2 ANS_2
+
+BATCH = (input_1, input_2)
+
+-----------------------------------------
+input_1_1 = DOC_A_1 DOC_B_1 QUERY_1 ANS_1
+input_1_2 = DOC_B_1 DOC_A_1 QUERY_1 ANS_1
+input_2_1 = DOC_A_2 DOC_B_2 QUERY_2 ANS_2
+input_2_2 = DOC_B_2 DOC_A_2 QUERY_2 ANS_2
+
+BATCH = (input_1_1, input_1_2, 
+		input_2_1, input_2_2)
+		
+kl_div -> input_1_1(DOC_B_1), 
+			input_1_2(DOC_B_1)
+kl_div -> input_1_1(DOC_A_1), 
+			input_1_2(DOC_A_1)
+	
+shuffle una volta per ogni input

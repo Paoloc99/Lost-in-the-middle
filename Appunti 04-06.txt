@@ -1,0 +1,38 @@
+04/06/2024
+
+PER IL TRAINING: https://huggingface.co/docs/trl/sft_trainer
+- Rendere sequenziali i dati
+- huggingface datasets -> map su tutti i sample del dataset e creiamo input strutturato
+- in training serve anche la risposta nel prompt
+- in inference fino ad "Answer:"
+- debugging in training per assicurarci che ci siano i Token di "Begin of sequence" all'inizio e "End of Sequence" alla fine per assicurarci che generi dopo quello
+	in teoria i token li mette da solo ma dobbiamo assicurarcene
+
+
+COSE DA AVERE PER LA PROSSIMA VOLTA:
+- avere un modello trainato
+- implementare anche delle misure in modo tale da poter confrontare un modello finetuned e uno non
+
+NOTE:
+- il training va fatto con gold+related in posizione random
+- training con 3/4 epoche
+- IPERPARAMETRI: https://github.com/huggingface/peft/blob/main/examples/sft/run_peft.sh
+	- provare anche a trainare togliendo la quantizzazione ma tenere il modello in fp16 e provare a togliere Lora
+	- le righe interessate sono
+		--use_peft_lora True \
+		--lora_r 8 \
+		--lora_alpha 16 \
+		--lora_dropout 0.1 \
+		--lora_target_modules "all-linear" \
+		--use_4bit_quantization True \
+		--use_nested_quant True \
+		--bnb_4bit_compute_dtype "bfloat16" \
+	
+	- in caso di problemi con o senza Lora bisogna giocare con questi parametri
+		--gradient_checkpointing True \
+		--use_reentrant True \
+
+GOOGLE COLAB:
+- provare a usare unsloth che funziona solo con Lora https://github.com/unslothai/unsloth  https://github.com/huggingface/peft/blob/main/examples/sft/run_unsloth_peft.sh
+- usare modelli Phi-2 e Llama-2-7b
+- con unsloth si può provare ad utilizzare anche Gemma 7b e Gemma 2b 

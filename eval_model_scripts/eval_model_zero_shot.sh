@@ -1,0 +1,1 @@
+python evaluate_model.py --model "unsloth/tinyllama" --output_dir "results_metrics" --filename "metrics_zero_shot"
