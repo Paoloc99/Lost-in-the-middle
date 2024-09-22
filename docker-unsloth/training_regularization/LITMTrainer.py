@@ -205,9 +205,10 @@ class LITMTrainer(SFTTrainer):
                 
                 current_pos = len(new_input_ids)
                 new_start_positions.append(current_pos)
-                
+                # Ottieni i token del documento che sostituirà il documento corrente
                 replacement_document = input_ids[new_start:new_end + 1]
                 
+                # Sostituisci i token nel nuovo input_ids
                 new_input_ids.extend(replacement_document)
 
                 current_pos = len(new_input_ids)
@@ -218,6 +219,8 @@ class LITMTrainer(SFTTrainer):
                 if old_idx == len(shuffle_map)-1:
                     new_input_ids.extend(input_ids[old_end+1:len(input_ids)])
 
+            
+            # Aggiungi i nuovi input_ids al nuovo batch
             device = input_ids.device.type
             new_input_ids = torch.Tensor(new_input_ids).to(torch.int64).to(device)
             new_start_positions = torch.Tensor(new_start_positions).to(torch.int64).to(device)
@@ -248,7 +251,7 @@ class LITMTrainer(SFTTrainer):
             device = attentions[0].device.type
             # device = "cpu"
             for attention_layer in range(len(attentions)):
-                attention_np = attentions[attention_layer][batch_idx].float().mean(0)
+                attention_np = attentions[attention_layer][batch_idx].float().mean(0).cpu()
                 answer_attention = attention_np[answer_position:len(attention_np)-1].mean(0)
                 doc_avgs = torch.stack([answer_attention[i:j].mean() for i, j in zip(document_start_positions, document_end_positions)])
                 normalized_doc_avgs = doc_avgs / doc_avgs.sum()
@@ -268,8 +271,8 @@ class LITMTrainer(SFTTrainer):
     def kl_regularizer(self, x, batch_documents_map):
         """Regularizer based on the Kullback-Leibler divergence Loss.
         """
-        # def normalize(x):
-        #     return torch.log(x/x.sum())
+        def normalize(x):
+            return torch.log(x/x.sum())
         
         def normalize_softmax(x):
             return torch.log_softmax(x,dim=1)
@@ -287,11 +290,12 @@ class LITMTrainer(SFTTrainer):
                 # Reduction over a fake batch of 1
                 kl_loss += kl_div(normalize_softmax(original[ :, :, key]), normalize_softmax(shuffled[ :, :, shuffled_map[key]]), reduction='batchmean', log_target=True)
 
-        # print("KL_LOSS senza normalizzazione per docs: ", kl_loss / layers)
+        print("KL_LOSS senza normalizzazione per docs: ", kl_loss / layers)
         kl_loss /= docs*layers
-        # print("KL_LOSS con normalizzazione per docs: ", kl_loss)
+        print("KL_LOSS con normalizzazione per docs: ", kl_loss)
         return kl_loss
 
+    # @wraps(SFTTrainer.compute_loss)
     def compute_loss(self, model, inputs, return_outputs=False):
         """
         How the loss is computed by Trainer. By default, all models return the loss in the first element.
@@ -330,7 +334,7 @@ class LITMTrainer(SFTTrainer):
 
             documents_attention_to_answer = []
 
-            for batch_index in range(outputs["logits"].shape[0]):
+            for batch_index in range(inputs["input_ids"].shape[0]):
                 documents_attention_to_answer.append(self.get_documents_attention_to_answer(attentions, new_document_start_positions[batch_index], new_document_end_positions[batch_index], new_answer_positions[batch_index], batch_index))
             cleaned = [doc for doc in documents_attention_to_answer if doc.shape == (len(attentions), len(new_document_start_positions[0])) and not torch.isnan(doc).any()]
             attentions_tensor = torch.stack(cleaned)
@@ -372,10 +376,10 @@ class LITMTrainer(SFTTrainer):
                         print("eval_kl_loss*mu: ", self.mu*kl_loss.item())
                         self.run_wandb.log({"eval_model_loss":model_loss.item(), "eval_kl_loss":kl_loss.item(), "eval_mu_kl_loss":self.mu*kl_loss.item()})
                 loss = model_loss + self.mu*kl_loss
-                print("loss: ", loss.item())
+                print("total_loss: ", loss.item())
             else:
                 loss = model_loss
-                print("loss: ", loss.item())
+                print("total_loss: ", loss.item())
 
         gc.collect()
         torch.cuda.empty_cache()

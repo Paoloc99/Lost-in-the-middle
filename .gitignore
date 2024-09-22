@@ -2,3 +2,8 @@
 /wandb/
 /checkpoints/
 /checkpoint-1875
+/docker-unsloth/trainer/checkpoints/**
+/docker-unsloth/training_regularization/checkpoints/**
+/docker-unsloth/training_regularization/wandb/**
+/old_dataset
+/output_dataset

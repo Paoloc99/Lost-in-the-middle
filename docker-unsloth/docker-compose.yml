@@ -1,0 +1,22 @@
+services:
+  unsloth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: '4'             # Limita a 2 core CPU
+          memory: 15g            # Limita la memoria a 4GB
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+          memory: 10g            # Riserva 2GB di memoria
+          cpus: '2.0'           # Riserva 1 CPU
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+        - ./trainer:/trainer
+        - ./training_regularization:/training_regularization

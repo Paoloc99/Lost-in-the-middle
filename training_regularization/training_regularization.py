@@ -68,11 +68,27 @@ def formatting_prompts_func(examples):
       full_text.append(f"{examples['prompt'][i]} {examples['completion'][i].strip()}{EOS_TOKEN}")
   return full_text
 
-dataset = load_dataset("Paoloc99/dataset", split="train[:70000]")
+dataset = load_dataset("Paoloc99/dataset", split="train[:1000]")
 # dataset = load_dataset("Paoloc99/dataset", split="train[:1000]")
 #dataset = dataset.map(formatting_prompts_func, batched = True,)
 eval_dataset = load_dataset("Paoloc99/dataset", split="train[-1000:]")
 # print(len(test_dataset))
+
+# Definire la lunghezza massima consentita
+max_allowed_length = 1200  # Imposta qui la lunghezza massima desiderata
+
+# Funzione per calcolare la lunghezza di ciascun esempio
+def filter_long_inputs(example):
+    input_text = formatting_prompts_func(example)  # Usa la funzione che formatta i prompt
+    tokenized_input = tokenizer(input_text, truncation=False)  # Tokenizza senza troncamento
+    input_length = len(tokenized_input['input_ids'][0])  # Lunghezza dell'input
+    return input_length <= max_allowed_length  # Mantieni solo gli input con lunghezza <= max_allowed_length
+
+# Applicare il filtro al dataset
+dataset = dataset.filter(filter_long_inputs, batched=False)
+eval_dataset = eval_dataset.filter(filter_long_inputs, batched=False)
+print("Lunghezza train dataset dopo filter:", len(dataset))
+print("Lunghezza eval dataset dopo filter:", len(eval_dataset))
 
 response_template_with_context = "\nAnswer:"  # We added context here: "\n". This is enough for this tokenizer
 response_template_ids = tokenizer.encode(response_template_with_context, add_special_tokens=False)[-2:]  # Now we have it like in the dataset texts: `[22550, 29901]`
@@ -136,22 +152,22 @@ os.environ["WANDB_WATCH"]="false"
 wandb.login(key="372f5c298afc4be9b40dd7b97523d394c3d30d05")
 run = wandb.init(project="lost-in-the-middle-reg", name=f"loss_regularization_mu_{mu_str}")
 
-# Funzione per calcolare la lunghezza degli input
-def compute_input_lengths(examples):
-    input_texts = formatting_prompts_func(examples)  # Usa la funzione che formatta i prompt
-    tokenized_inputs = tokenizer(input_texts, truncation=False)  # Tokenizza senza troncamento
-    lengths = [len(input_ids) for input_ids in tokenized_inputs['input_ids']]
-    return {"input_length": lengths}
+# # Funzione per calcolare la lunghezza degli input
+# def compute_input_lengths(examples):
+#     input_texts = formatting_prompts_func(examples)  # Usa la funzione che formatta i prompt
+#     tokenized_inputs = tokenizer(input_texts, truncation=False)  # Tokenizza senza troncamento
+#     lengths = [len(input_ids) for input_ids in tokenized_inputs['input_ids']]
+#     return {"input_length": lengths}
 
-# Applica la funzione al dataset per ottenere le lunghezze degli input
-dataset_with_lengths = dataset.map(compute_input_lengths, batched=True)
+# # Applica la funzione al dataset per ottenere le lunghezze degli input
+# dataset_with_lengths = dataset.map(compute_input_lengths, batched=True)
 
-# Trova la lunghezza massima e media
-max_length = max(dataset_with_lengths["input_length"])
-average_length = sum(dataset_with_lengths["input_length"]) / len(dataset_with_lengths["input_length"])
+# # Trova la lunghezza massima e media
+# max_length = max(dataset_with_lengths["input_length"])
+# average_length = sum(dataset_with_lengths["input_length"]) / len(dataset_with_lengths["input_length"])
 
-print(f"La lunghezza massima di un input nel dataset è: {max_length} token")
-print(f"La lunghezza media degli input nel dataset è: {average_length:.2f} token")
+# print(f"La lunghezza massima di un input nel dataset è: {max_length} token")
+# print(f"La lunghezza media degli input nel dataset è: {average_length:.2f} token")
 
 os.environ["CUDA_LAUNCH_BLOCKING"]="1"
 
@@ -174,7 +190,8 @@ trainer = LITMTrainer(
         report_to="wandb",
         run_name= f"loss_regularization_mu_{mu_str}",
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 4,
+        per_device_eval_batch_size = 1,
+        gradient_accumulation_steps = 1,
         # Se steps < 4000 -> 0.1, se 20.000 ->
         warmup_ratio = 0.1,
         num_train_epochs = 1,
@@ -197,7 +214,7 @@ trainer = LITMTrainer(
         save_steps=100,
         save_total_limit=10,
         save_strategy="steps",
-        eval_steps=100,
+        eval_steps=1,
         eval_strategy="steps",
         do_eval = True,
         load_best_model_at_end = True,
