@@ -102,7 +102,7 @@ class DataCollatorForLostInTheMiddle(DataCollatorForLanguageModeling):
                 document_token_ids_end_idxs = []
 
                 documents_indx = np.where(batch["labels"][i] == self.document_template_ids[0])[0]
-                question_idx = np.where(batch["labels"][i] == self.question_template_ids[0])[0][0]
+                question_idx = np.where(batch["labels"][i] == self.question_template_ids[0])[0][-1]
 
                 for j in range(len(documents_indx)):
                     # `response_token_ids` is `'### Response:\n'`, here we are just making sure that the token IDs match

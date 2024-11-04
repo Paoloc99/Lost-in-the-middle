@@ -64,12 +64,13 @@ def main(args):
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
                         "gate_proj", "up_proj", "down_proj",],
         use_rslora=False,
-        loftq_config=None,
+        loftq_config={},
     )
 
     # Load dataset
-    train_dataset = load_dataset("Paoloc99/dataset", split=f"train[:{args.train_dataset_size}]")
-    eval_dataset = load_dataset("Paoloc99/dataset", split="train[-300:]")
+    # train_dataset = load_dataset("Paoloc99/dataset", split=f"train[:{args.train_dataset_size}]")
+    train_dataset = load_dataset("Paoloc99/dataset", split=f"train")
+    eval_dataset = load_dataset("Paoloc99/dataset", split="test[:1000]")
 
     EOS_TOKEN = tokenizer.eos_token
     def formatting_prompts_func(examples):
@@ -82,15 +83,15 @@ def main(args):
         return full_text
     
     # Definire la lunghezza massima consentita
-    max_allowed_length = 1200  # Imposta qui la lunghezza massima desiderata
+    max_allowed_length = max_seq_length
 
     # Funzione per calcolare la lunghezza di ciascun esempio
     def filter_long_inputs(example):
-        input_text = formatting_prompts_func(example)  # Usa la funzione che formatta i prompt
-        tokenized_input = tokenizer(input_text, truncation=False)  # Tokenizza senza troncamento
-        input_length = len(tokenized_input['input_ids'][0])  # Lunghezza dell'input
-        return input_length <= max_allowed_length  # Mantieni solo gli input con lunghezza <= max_allowed_length
-
+        input_text = formatting_prompts_func(example)
+        tokenized_input = tokenizer(input_text, truncation=False)
+        input_length = len(tokenized_input['input_ids'][0])
+        return input_length <= max_allowed_length  
+    
     # Applicare il filtro al dataset
     train_dataset = train_dataset.filter(filter_long_inputs, batched=False)
     eval_dataset = eval_dataset.filter(filter_long_inputs, batched=False)
@@ -198,12 +199,12 @@ def main(args):
             output_dir=output_dir,
             logging_steps=5,
             log_level='debug',
-            save_steps=100,
-            save_total_limit=10,
             save_strategy="steps",
-            eval_steps=100,
+            save_steps=200,
+            save_total_limit=10,
             eval_strategy="steps",
-            do_eval=False,
+            eval_steps=200,
+            do_eval=True,
             load_best_model_at_end=True
         ),
     )

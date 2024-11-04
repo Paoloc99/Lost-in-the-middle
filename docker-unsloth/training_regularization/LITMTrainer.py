@@ -240,6 +240,21 @@ class LITMTrainer(SFTTrainer):
             new_answer_positions.append(answer_positions[batch_idx].to(torch.int64))
             new_answer_positions.append(answer_positions[batch_idx].to(torch.int64))
 
+            if len(input_ids) != len(new_input_ids):
+                print("Padding for sequences ", len(input_ids), len(new_input_ids))
+                max_len = max([len(ids) for ids in new_inputs])
+                new_inputs = [torch.nn.functional.pad(ids, (0, max_len - len(ids)), value=0) for ids in new_inputs]
+                for i in range(len(new_document_start_positions)):
+                    for position in range(len(new_document_start_positions[i])):
+                        print(f"Document {i}-{position}: ", self.tokenizer.decode(new_inputs[i][new_document_start_positions[i][position]:new_document_end_positions[i][position]]))
+                    print(f"Answer {i} : ", self.tokenizer.decode(new_inputs[i][new_answer_positions[i]:len(new_inputs[i])]))
+                    print("========================")
+                print(document_maps)
+                print(new_labels)
+                print(new_attention_mask)
+                print(new_document_start_positions)
+                print(new_document_end_positions)
+
         inputs['input_ids'] = torch.stack(new_inputs)
         inputs['attention_mask'] = torch.stack(new_attention_mask)
         inputs['labels'] = torch.stack(new_labels)
@@ -290,9 +305,32 @@ class LITMTrainer(SFTTrainer):
                 # Reduction over a fake batch of 1
                 kl_loss += kl_div(normalize_softmax(original[ :, :, key]), normalize_softmax(shuffled[ :, :, shuffled_map[key]]), reduction='batchmean', log_target=True)
 
-        print("KL_LOSS senza normalizzazione per docs: ", kl_loss / layers)
         kl_loss /= docs*layers
-        print("KL_LOSS con normalizzazione per docs: ", kl_loss)
+        return kl_loss
+    
+    def kl_regularizer_1(self, x):
+        """Regularizer based on the Kullback-Leibler divergence Loss.
+
+        Args:
+            x : torch.Tensor
+            The input tensor with batched samples.
+
+        Returns:
+            kl_loss : torch.Tensor
+            The kl_loss normalized by the number of layers.
+        """
+        def normalize(x):
+            return torch.log(x/x.sum())
+        
+        def normalize_softmax(x):
+            return torch.log_softmax(x,dim=1)
+        kl_loss = 0
+        layers = x.shape[-2]
+        docs = x.shape[-1]
+        for i in range(docs-1):
+            kl_loss += kl_div(normalize_softmax(x[:,:,i]), normalize_softmax(x[:,:,i+1]), reduction='batchmean', log_target=True)
+
+        kl_loss /= docs*layers
         return kl_loss
 
     # @wraps(SFTTrainer.compute_loss)

@@ -1,0 +1,16 @@
+{
+    "exact_match": 0.0,
+    "partial_match": 0.8941605839416058,
+    "jaccard_partial_match": 0.2167929623592496,
+    "precision": 0.19013693560325684,
+    "recall": 0.5814940577249575,
+    "f1": 0.286570910612188,
+    "rouge1": 0.0,
+    "rouge2": 0.0,
+    "rougeL": 0.0,
+    "rougeLsum": 0.0,
+    "bleu": 0.0,
+    "bert_precision": 0.7046627998352051,
+    "bert_recall": 0.7965893149375916,
+    "bert_f1": 0.7471258640289307
+}

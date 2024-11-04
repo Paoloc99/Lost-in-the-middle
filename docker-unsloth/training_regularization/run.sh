@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python training_regularization.py \
---max_seq_length 2048 \
+--max_seq_length 1200 \
 --dtype "None" \
 --load_in_4bit True \
 --use_liger True \
